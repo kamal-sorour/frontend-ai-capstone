@@ -1,68 +1,141 @@
-# Frontend AI Capstone Project
+# 🚀 Frontend AI Capstone Project
 
-A modern, highly responsive web application designed as an AI-powered frontend capstone project. This application leverages cutting-edge web technologies to deliver an interactive, intelligent user experience.
-
----
-
-## 🚀 Tech Stack
-
-- **Framework:** [Next.js](https://nextjs.org/) (React)
-- **Styling:** [Tailwind CSS](https://tailwindcss.com/)
-- **Linting & Formatting:** [ESLint](https://eslint.org/) & [Prettier](https://prettier.io/)
+A modern, highly responsive web application built as an AI-powered frontend capstone project. It leverages modern web technologies to deliver an interactive, intelligent, and seamless user experience.
 
 ---
 
-## 🛠️ Getting Started
+## ✨ Tech Stack
 
-To get a local copy up and running, follow these simple steps:
-
-### Prerequisites
-
-Ensure you have [Node.js](https://nodejs.org/) installed (v18.x or higher recommended).
-
-### Installation
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/your-username/frontend-ai-capstone.git
-   cd frontend-ai-capstone
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Start the development server:
-   ```bash
-   npm run dev
-   ```
-
-4. Open [http://localhost:3000](http://localhost:3000) in your browser to view the application.
+| Technology | Description |
+|------------|-------------|
+| ⚛️ Framework | Next.js (React) |
+| 🎨 Styling | Tailwind CSS |
+| 🧹 Linting | ESLint |
+| 💎 Formatting | Prettier |
 
 ---
 
-## 📐 Development & Coding Standards
+# 🛠️ Getting Started
 
-To maintain a clean and maintainable codebase, we adhere to the following conventions:
+Follow these steps to run the project locally.
 
-### Commit Messages
-We strictly follow the [Conventional Commits 1.0.0](https://www.conventionalcommits.org/) specification for all commits:
-- `feat`: A new feature
-- `fix`: A bug fix
-- `docs`: Documentation changes
-- `style`: Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)
-- `refactor`: A code change that neither fixes a bug nor adds a feature
-- `test`: Adding missing tests or correcting existing tests
-- `chore`: Changes to the build process or auxiliary tools and libraries such as documentation generation
+## Prerequisites
 
-### Code Formatting
-- Code is automatically formatted using **Prettier**.
-- Code quality is enforced using **ESLint**.
-- Ensure you run formatting before submitting any pull requests.
+Make sure you have:
+
+- Node.js **v18.x** or higher
+- npm (comes with Node.js)
 
 ---
 
-## 📄 License
+## 📥 Installation
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/your-username/frontend-ai-capstone.git
+cd frontend-ai-capstone
+```
+
+### 2. Install dependencies
+
+```bash
+npm install
+```
+
+### 3. Start the development server
+
+```bash
+npm run dev
+```
+
+---
+
+## 🌐 Open the Application
+
+Visit the following URL in your browser:
+
+```text
+http://localhost:3000
+```
+
+---
+
+# 📐 Development Standards
+
+To keep the project clean, scalable, and easy to maintain, please follow these conventions.
+
+---
+
+## 📝 Commit Convention
+
+This project follows the **Conventional Commits 1.0.0** specification.
+
+| Type | Description |
+|------|-------------|
+| `feat:` | Introduce a new feature |
+| `fix:` | Fix a bug |
+| `docs:` | Documentation updates |
+| `style:` | Formatting or style changes (no logic changes) |
+| `refactor:` | Code improvements without changing behavior |
+| `test:` | Add or update tests |
+| `chore:` | Maintenance tasks and tooling updates |
+
+### Example
+
+```bash
+feat: add AI chat interface
+fix: resolve hydration warning
+style: format README headers and polish documentation
+refactor: simplify authentication flow
+```
+
+---
+
+## 🎯 Code Quality
+
+The project uses:
+
+- ✅ ESLint for code quality
+- ✅ Prettier for automatic formatting
+
+Before creating a Pull Request, make sure to format your code.
+
+---
+
+# 📂 Project Structure
+
+```text
+frontend-ai-capstone/
+│
+├── app/
+├── components/
+├── public/
+├── styles/
+├── package.json
+└── README.md
+```
+
+---
+
+# 🤝 Contributing
+
+Contributions are welcome.
+
+Please make sure your code follows the project's coding standards and commit message conventions before submitting a Pull Request.
+
+---
+
+# 📄 License
+
+This project is licensed under the **MIT License**.
+
+See the **LICENSE** file for more information.
+
+---
+
+<div align="center">
+
+Made with ❤️ using **Next.js** & **Tailwind CSS**
+
+</div>
