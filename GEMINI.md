@@ -56,3 +56,8 @@ All commits must strictly follow the Conventional Commits format:
 - **Minimal Invasive Changes:** Do not overwrite existing working logic unless explicitly instructed.
 - **Code Quality:** Ensure any generated code adheres to TypeScript strict mode and Tailwind CSS best practices.
 - **Testing & Edge Cases:** Always consider edge cases (loading states, error handling, empty states) when generating UI components.
+
+## Frontend Project AI Rules (Added from FE-03)
+1. **Strict Schema Validation:** All form inputs must enforce explicit validation rules (required fields, valid email regex) before submission.
+2. **Mandatory Accessibility:** Every input must have an associated `<label>` and use `aria-invalid` for error states.
+3. **Verification Loop:** Every UI component must include a co-located `.test.jsx` file verifying validation errors and submit behavior.
