@@ -1,17 +1,17 @@
-// src/app/api/chat/route.ts
-
 import {
   convertToModelMessages,
   streamText,
+  tool,
   type UIMessage,
 } from 'ai';
-
+import { z } from 'zod';
 import { google } from '@ai-sdk/google';
 
 export const maxDuration = 30;
 
 const MAX_MESSAGES = 50;
 const MAX_MESSAGE_LENGTH = 2000;
+
 
 const systemPrompt = `
 You are a highly professional, strict, adaptive, and domain-agnostic INTERVIEWER.
@@ -607,49 +607,27 @@ For example:
 Once the role is established, continue by determining the minimum additional context required and then begin the interview.
 
 From that point onward, remain strictly within your role as the professional interviewer.
-`.trim();
+`.trim()
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-
     const messages = body?.messages as UIMessage[] | undefined;
 
     // Validate messages
     if (!Array.isArray(messages)) {
-      return Response.json(
-        {
-          error: 'Invalid messages format.',
-        },
-        {
-          status: 400,
-        }
-      );
+      return Response.json({ error: 'Invalid messages format.' }, { status: 400 });
     }
 
     // Maximum conversation length
     if (messages.length > MAX_MESSAGES) {
-      return Response.json(
-        {
-          error: `Conversation limit exceeded. Maximum ${MAX_MESSAGES} messages allowed.`,
-        },
-        {
-          status: 400,
-        }
-      );
+      return Response.json({ error: `Conversation limit exceeded. Maximum ${MAX_MESSAGES} messages allowed.` }, { status: 400 });
     }
 
     // Validate message length
     for (const message of messages) {
       if (!message || typeof message !== 'object') {
-        return Response.json(
-          {
-            error: 'Invalid message.',
-          },
-          {
-            status: 400,
-          }
-        );
+        return Response.json({ error: 'Invalid message.' }, { status: 400 });
       }
 
       if (Array.isArray(message.parts)) {
@@ -659,47 +637,41 @@ export async function POST(req: Request) {
             typeof part.text === 'string' &&
             part.text.length > MAX_MESSAGE_LENGTH
           ) {
-            return Response.json(
-              {
-                error: `Message exceeds the ${MAX_MESSAGE_LENGTH} character limit.`,
-              },
-              {
-                status: 413,
-              }
-            );
+            return Response.json({ error: `Message exceeds the ${MAX_MESSAGE_LENGTH} character limit.` }, { status: 413 });
           }
         }
       }
     }
 
     // Convert UI messages to model messages
-    const modelMessages =
-      await convertToModelMessages(messages);
+    const modelMessages = await convertToModelMessages(messages);
 
-    // Generate Gemini response
+    // Generate Gemini response with Tools
     const result = streamText({
       model: google('gemini-3.5-flash-lite'),
-
       system: systemPrompt,
-
       messages: modelMessages,
-
-      // Limit generated response
       maxOutputTokens: 1000,
+      tools: {
+        evaluate_answer: tool({
+          description: 'Evaluates the user interview answer and returns a structured score card.',
+          parameters: z.object({
+            score: z.number().min(0).max(100).describe('Score from 0 to 100.'),
+            feedback: z.string().describe('Short constructive feedback regarding the logic and code.'),
+            strengths: z.array(z.string()).describe('List of key strengths in the user answer.')
+          }),
+          execute: (async ({ score, feedback, strengths }: { score: number; feedback: string; strengths: string[] }) => {
+            if (score < 0) throw new Error("Evaluation engine failed to calculate score.");
+            return { score, feedback, strengths };
+          }) as any,
+        }),
+      },
     });
 
     // Return UI-compatible streaming response
     return result.toUIMessageStreamResponse();
   } catch (error) {
     console.error('Chat API Error:', error);
-
-    return Response.json(
-      {
-        error: 'Failed to process chat request.',
-      },
-      {
-        status: 500,
-      }
-    );
+    return Response.json({ error: 'Failed to process chat request.' }, { status: 500 });
   }
 }

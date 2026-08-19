@@ -3,7 +3,7 @@
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { useEffect, useRef, useState } from 'react';
-import { StopCircle, Send, Loader2 } from 'lucide-react';
+import { StopCircle, Send, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 
 const MAX_INPUT_LENGTH = 2000;
 
@@ -24,149 +24,166 @@ export default function ChatInterface() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  const isLoading =
-    status === 'submitted' || status === 'streaming';
+  const isLoading = status === 'submitted' || status === 'streaming';
 
   // Auto-scroll
   useEffect(() => {
     const container = chatContainerRef.current;
-
     if (!container) return;
 
-    const isNearBottom =
-      container.scrollHeight - container.scrollTop <=
-      container.clientHeight + 100;
-
+    const isNearBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
     if (isNearBottom) {
-      messagesEndRef.current?.scrollIntoView({
-        behavior: 'smooth',
-      });
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
     const trimmedInput = input.trim();
+    if (!trimmedInput || trimmedInput.length > MAX_INPUT_LENGTH || isLoading) return;
 
-    // Prevent empty messages
-    if (!trimmedInput) return;
-
-    // Frontend length protection
-    if (trimmedInput.length > MAX_INPUT_LENGTH) {
-      return;
-    }
-
-    // Prevent sending while another response is streaming
-    if (isLoading) return;
-
-    sendMessage({
-      text: trimmedInput,
-    });
-
+    sendMessage({ text: trimmedInput });
     setInput('');
   };
 
   return (
     <div className="flex flex-col h-[80vh] max-w-3xl mx-auto bg-white border border-gray-200 rounded-3xl shadow-sm overflow-hidden">
-
       {/* Chat Messages Area */}
-      <div
-        ref={chatContainerRef}
-        className="flex-1 overflow-y-auto p-6 space-y-6"
-      >
+      <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-6 space-y-6">
         {messages.length === 0 && (
-          <div className="text-center text-gray-500 mt-20">
-            Start the qualification chat to begin...
+          <div className="flex flex-col items-center justify-center h-full text-gray-400">
+            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+              <Send className="w-6 h-6 text-gray-300" />
+            </div>
+            <p className="text-sm font-medium">Start the qualification chat to begin...</p>
           </div>
         )}
 
         {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex ${
-              message.role === 'user'
-                ? 'justify-end'
-                : 'justify-start'
-            }`}
-          >
-            <div
-              className={`max-w-[80%] rounded-2xl px-5 py-3 ${
-                message.role === 'user'
-                  ? 'bg-blue-600 text-white rounded-br-none'
-                  : 'bg-gray-100 text-gray-900 rounded-bl-none'
-              }`}
-            >
-              {/* AI SDK 7 uses message.parts */}
-              {message.parts.map((part, index) => {
-                if (part.type !== 'text') {
-                  return null;
+          <div key={message.id} className={`flex flex-col gap-2 ${message.role === 'user' ? 'items-end' : 'items-start'}`}>
+            {message.parts.map((part, index) => {
+              // 1. عرض النصوص العادية
+              if (part.type === 'text') {
+                return (
+                  <div key={`${message.id}-${index}`} className={`max-w-[85%] rounded-2xl px-5 py-3 ${
+                      message.role === 'user'
+                        ? 'bg-blue-600 text-white rounded-br-none shadow-md shadow-blue-500/20'
+                        : 'bg-gray-50 border border-gray-100 text-gray-800 rounded-bl-none shadow-sm'
+                    }`}>
+                    <p className="whitespace-pre-wrap leading-relaxed text-[15px]">{part.text}</p>
+                  </div>
+                );
+              }
+
+              // 2. عرض الأدوات (Generative UI)
+              if (part.type === 'tool-invocation') {
+                const { toolInvocation } = part;
+                
+                // حالة التحميل (Input Streaming / Call)
+                if (toolInvocation.state === 'call') {
+                  return (
+                    <div key={toolInvocation.toolCallId} className="max-w-[85%] bg-blue-50/50 border border-blue-100 p-4 rounded-2xl rounded-bl-none mt-1 animate-pulse flex items-center gap-3">
+                      <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
+                      <span className="text-sm text-blue-700 font-medium">Analyzing your answer & generating score...</span>
+                    </div>
+                  );
                 }
 
-                return (
-                  <p
-                    key={`${message.id}-${index}`}
-                    className="whitespace-pre-wrap leading-relaxed"
-                  >
-                    {part.text}
-                  </p>
-                );
-              })}
-            </div>
+                // بعد انتهاء الأداة
+                if (toolInvocation.state === 'result') {
+                  // حالة الخطأ (Error State)
+                  if ('error' in toolInvocation || !toolInvocation.result) {
+                    return (
+                      <div key={toolInvocation.toolCallId} className="max-w-[85%] bg-red-50 border border-red-100 p-4 rounded-2xl rounded-bl-none mt-1 flex gap-3 items-start">
+                        <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                        <div className="text-sm text-red-800">
+                          <strong className="font-semibold block mb-1">Evaluation Failed</strong>
+                          <p className="opacity-90">We encountered an issue while processing your score. Please elaborate on your answer.</p>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // حالة النجاح (Output Available - The Score Card Component)
+                  const { score, feedback, strengths } = toolInvocation.result;
+                  const isGoodScore = score >= 70;
+                  
+                  return (
+                    <div key={toolInvocation.toolCallId} className="w-full max-w-[85%] bg-white border border-gray-200 p-5 rounded-2xl rounded-bl-none shadow-sm mt-1 transition-all duration-300">
+                      <div className="flex items-center justify-between border-b border-gray-100 pb-3 mb-4">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="w-5 h-5 text-green-500" />
+                          <h3 className="font-bold text-gray-800">Evaluation Result</h3>
+                        </div>
+                        <span className={`px-3 py-1 rounded-full text-sm font-bold tracking-wide ${
+                          isGoodScore ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-orange-100 text-orange-700 border border-orange-200'
+                        }`}>
+                          {score} / 100
+                        </span>
+                      </div>
+                      
+                      <p className="text-gray-600 text-sm mb-5 leading-relaxed bg-gray-50 p-3 rounded-xl border border-gray-100">
+                        {feedback}
+                      </p>
+                      
+                      {strengths && strengths.length > 0 && (
+                        <div>
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2 block">Key Strengths</span>
+                          <ul className="flex flex-wrap gap-2">
+                            {strengths.map((str: string, i: number) => (
+                              <li key={i} className="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-lg text-xs font-medium border border-gray-200">
+                                {str}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+              }
+              return null;
+            })}
           </div>
         ))}
 
-        {/* Thinking Indicator */}
+        {/* Thinking Indicator before text stream */}
         {status === 'submitted' && (
           <div className="flex justify-start">
-            <div className="bg-gray-100 text-gray-500 rounded-2xl rounded-bl-none px-5 py-3 flex items-center gap-2">
+            <div className="bg-gray-50 border border-gray-100 text-gray-500 rounded-2xl rounded-bl-none px-5 py-3 flex items-center gap-2 shadow-sm">
               <Loader2 className="w-4 h-4 animate-spin" />
-
-              <span className="text-sm">
-                Thinking...
-              </span>
+              <span className="text-sm font-medium">Processing...</span>
             </div>
           </div>
         )}
-
         <div ref={messagesEndRef} />
       </div>
 
       {/* Input Area */}
-      <div className="p-4 bg-gray-50 border-t border-gray-200">
-        <form
-          onSubmit={handleSubmit}
-          className="flex gap-3 relative"
-        >
+      <div className="p-5 bg-white border-t border-gray-100 shadow-[0_-4px_20px_-15px_rgba(0,0,0,0.1)]">
+        <form onSubmit={handleSubmit} className="flex gap-3 relative">
           <div className="flex-1 relative">
             <input
-              className="w-full px-5 py-4 bg-white border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+              className="w-full pl-5 pr-14 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all placeholder:text-gray-400"
               value={input}
               onChange={(event) => {
                 const value = event.target.value;
-
-                // Hard client-side limit
-                if (value.length <= MAX_INPUT_LENGTH) {
-                  setInput(value);
-                }
+                if (value.length <= MAX_INPUT_LENGTH) setInput(value);
               }}
-              placeholder="Type your message..."
+              placeholder="Type your response..."
               disabled={isLoading}
               maxLength={MAX_INPUT_LENGTH}
             />
-
-            {/* Character Counter */}
-            <span className="absolute right-5 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">
+            <span className="absolute right-5 top-1/2 -translate-y-1/2 text-[10px] font-medium text-gray-400 pointer-events-none">
               {input.length}/{MAX_INPUT_LENGTH}
             </span>
           </div>
 
-          {/* Dynamic Button */}
           {isLoading ? (
             <button
               type="button"
               onClick={stop}
-              className="px-6 bg-red-100 text-red-600 hover:bg-red-200 rounded-full flex items-center justify-center transition-colors"
+              className="px-6 bg-red-50 text-red-500 border border-red-100 hover:bg-red-100 rounded-2xl flex items-center justify-center transition-all"
               aria-label="Stop generating"
             >
               <StopCircle className="w-6 h-6" />
@@ -175,10 +192,10 @@ export default function ChatInterface() {
             <button
               type="submit"
               disabled={!input.trim()}
-              className="px-6 bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-full flex items-center justify-center transition-colors"
+              className="px-6 bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-600/20 disabled:opacity-50 disabled:hover:shadow-none disabled:cursor-not-allowed rounded-2xl flex items-center justify-center transition-all"
               aria-label="Send message"
             >
-              <Send className="w-5 h-5" />
+              <Send className="w-5 h-5 ml-1" />
             </button>
           )}
         </form>

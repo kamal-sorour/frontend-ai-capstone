@@ -92,6 +92,12 @@ refactor: simplify authentication flow
 
 ---
 
+## Tool Contract (FE-07)
+* **Tool Name:** `evaluate_answer`
+* **Description:** Evaluates technical interview answers and generates a visual score card.
+* **Schema:** Zod object containing `score` (0-100), `feedback` (string), and `strengths` (array of strings).
+* **Return Shape:** Renders as an interactive UI component handling 4 distinct states (Loading, Result, Error) directly in the chat stream, avoiding raw JSON dumps.
+
 ## 🎯 Code Quality
 
 The project uses:
