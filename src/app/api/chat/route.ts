@@ -655,13 +655,13 @@ export async function POST(req: Request) {
       tools: {
         evaluate_answer: tool({
           description: 'Evaluates the user interview answer and returns a structured score card.',
-          parameters: z.object({
+          inputSchema: z.object({
             score: z.number().min(0).max(100).describe('Score from 0 to 100.'),
             feedback: z.string().describe('Short constructive feedback regarding the logic and code.'),
             strengths: z.array(z.string()).describe('List of key strengths in the user answer.')
           }),
           execute: (async ({ score, feedback, strengths }: { score: number; feedback: string; strengths: string[] }) => {
-            if (score < 0) throw new Error("Evaluation engine failed to calculate score.");
+            if (score < 0) throw new Error('Evaluation engine failed to calculate score.');
             return { score, feedback, strengths };
           }) as any,
         }),

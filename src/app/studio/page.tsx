@@ -76,70 +76,85 @@ export default function ChatInterface() {
               }
 
               // 2. عرض الأدوات (Generative UI)
-              if (part.type === 'tool-invocation') {
-                const { toolInvocation } = part;
-                
-                // حالة التحميل (Input Streaming / Call)
-                if (toolInvocation.state === 'call') {
-                  return (
-                    <div key={toolInvocation.toolCallId} className="max-w-[85%] bg-blue-50/50 border border-blue-100 p-4 rounded-2xl rounded-bl-none mt-1 animate-pulse flex items-center gap-3">
-                      <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
-                      <span className="text-sm text-blue-700 font-medium">Analyzing your answer & generating score...</span>
-                    </div>
-                  );
-                }
-
-                // بعد انتهاء الأداة
-                if (toolInvocation.state === 'result') {
-                  // حالة الخطأ (Error State)
-                  if ('error' in toolInvocation || !toolInvocation.result) {
+              if (part.type === 'tool-evaluate_answer') {
+                switch (part.state) {
+                  case 'input-streaming':
+                  case 'input-available':
                     return (
-                      <div key={toolInvocation.toolCallId} className="max-w-[85%] bg-red-50 border border-red-100 p-4 rounded-2xl rounded-bl-none mt-1 flex gap-3 items-start">
+                      <div key={part.toolCallId} className="max-w-[85%] bg-blue-50/50 border border-blue-100 p-4 rounded-2xl rounded-bl-none mt-1 animate-pulse flex items-center gap-3">
+                        <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
+                        <span className="text-sm text-blue-700 font-medium">Analyzing your answer & generating score...</span>
+                      </div>
+                    );
+
+                  case 'output-error':
+                    return (
+                      <div key={part.toolCallId} className="max-w-[85%] bg-red-50 border border-red-100 p-4 rounded-2xl rounded-bl-none mt-1 flex gap-3 items-start">
                         <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
                         <div className="text-sm text-red-800">
                           <strong className="font-semibold block mb-1">Evaluation Failed</strong>
-                          <p className="opacity-90">We encountered an issue while processing your score. Please elaborate on your answer.</p>
+                          <p className="opacity-90">{part.errorText || 'We encountered an issue while processing your score. Please elaborate on your answer.'}</p>
                         </div>
+                      </div>
+                    );
+
+                  case 'output-available': {
+                    const output = part.output;
+                    if (!output || typeof output !== 'object' || !('score' in output) || !('feedback' in output) || !('strengths' in output)) {
+                      return (
+                        <div key={part.toolCallId} className="max-w-[85%] bg-red-50 border border-red-100 p-4 rounded-2xl rounded-bl-none mt-1 flex gap-3 items-start">
+                          <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                          <div className="text-sm text-red-800">
+                            <strong className="font-semibold block mb-1">Evaluation Failed</strong>
+                            <p className="opacity-90">We encountered an issue while processing your score. Please elaborate on your answer.</p>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    const { score, feedback, strengths } = output as {
+                      score: number;
+                      feedback: string;
+                      strengths: string[];
+                    };
+                    const isGoodScore = score >= 70;
+
+                    return (
+                      <div key={part.toolCallId} className="w-full max-w-[85%] bg-white border border-gray-200 p-5 rounded-2xl rounded-bl-none shadow-sm mt-1 transition-all duration-300">
+                        <div className="flex items-center justify-between border-b border-gray-100 pb-3 mb-4">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="w-5 h-5 text-green-500" />
+                            <h3 className="font-bold text-gray-800">Evaluation Result</h3>
+                          </div>
+                          <span className={`px-3 py-1 rounded-full text-sm font-bold tracking-wide ${
+                            isGoodScore ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-orange-100 text-orange-700 border border-orange-200'
+                          }`}>
+                            {score} / 100
+                          </span>
+                        </div>
+
+                        <p className="text-gray-600 text-sm mb-5 leading-relaxed bg-gray-50 p-3 rounded-xl border border-gray-100">
+                          {feedback}
+                        </p>
+
+                        {strengths && strengths.length > 0 && (
+                          <div>
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2 block">Key Strengths</span>
+                            <ul className="flex flex-wrap gap-2">
+                              {strengths.map((str: string, i: number) => (
+                                <li key={i} className="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-lg text-xs font-medium border border-gray-200">
+                                  {str}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
                       </div>
                     );
                   }
 
-                  // حالة النجاح (Output Available - The Score Card Component)
-                  const { score, feedback, strengths } = toolInvocation.result;
-                  const isGoodScore = score >= 70;
-                  
-                  return (
-                    <div key={toolInvocation.toolCallId} className="w-full max-w-[85%] bg-white border border-gray-200 p-5 rounded-2xl rounded-bl-none shadow-sm mt-1 transition-all duration-300">
-                      <div className="flex items-center justify-between border-b border-gray-100 pb-3 mb-4">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle2 className="w-5 h-5 text-green-500" />
-                          <h3 className="font-bold text-gray-800">Evaluation Result</h3>
-                        </div>
-                        <span className={`px-3 py-1 rounded-full text-sm font-bold tracking-wide ${
-                          isGoodScore ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-orange-100 text-orange-700 border border-orange-200'
-                        }`}>
-                          {score} / 100
-                        </span>
-                      </div>
-                      
-                      <p className="text-gray-600 text-sm mb-5 leading-relaxed bg-gray-50 p-3 rounded-xl border border-gray-100">
-                        {feedback}
-                      </p>
-                      
-                      {strengths && strengths.length > 0 && (
-                        <div>
-                          <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2 block">Key Strengths</span>
-                          <ul className="flex flex-wrap gap-2">
-                            {strengths.map((str: string, i: number) => (
-                              <li key={i} className="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-lg text-xs font-medium border border-gray-200">
-                                {str}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                  );
+                  default:
+                    return null;
                 }
               }
               return null;
