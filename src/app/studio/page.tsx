@@ -64,16 +64,16 @@ export default function ChatInterface() {
             
             <div className="flex flex-col gap-3 w-full max-w-sm">
               <button 
-                onClick={() => setInput("Explain the difference between Client and Server Components in Next.js.")} 
+                onClick={() => setInput("I'm a Frontend Developer, My level is beginner Can you interview me?")} 
+                className="px-4 py-3 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 text-left transition-all shadow-sm hover:shadow-md"
+              >
+                "I'm a Frontend Developer, My level is beginner Can you interview me?"
+              </button>
+              <button 
+                onClick={() => setInput("I'm a Full Stack Developer, My level is intermediate Can you interview me?")} 
                 className="px-4 py-3 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 text-left transition-all shadow-sm hover:shadow-md"
               >
                 "I'm a Full Stack Developer, My level is intermediate Can you interview me?"
-              </button>
-              <button 
-                onClick={() => setInput("How does React's Virtual DOM actually work under the hood?")} 
-                className="px-4 py-3 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 text-left transition-all shadow-sm hover:shadow-md"
-              >
-                "I'm a Ai Engineer, My level is advanced Can you interview me?"
               </button>
             </div>
           </div>
