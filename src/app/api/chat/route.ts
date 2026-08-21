@@ -611,18 +611,11 @@ From that point onward, remain strictly within your role as the professional int
 
 export async function POST(req: Request) {
   try {
-    // 🚨 بداية التخريب المتعمد (Sabotage) 🚨
-    // هذا السطر سيجعل السيرفر ينهار فوراً لإظهار واجهة الخطأ الحمراء
-    // ⚠️ تنبيه: امسح هذا السطر فوراً بعد أخذ السكرين شوت ⚠️
-    throw new Error('Simulated API Crash for Checkpoint Testing');
-    // 🚨 نهاية التخريب المتعمد 🚨
-
     const body = await req.json();
-    const rawMessages = body?.messages;
-    const messages: UIMessage[] = Array.isArray(rawMessages) ? (rawMessages as UIMessage[]) : [];
+    const messages = body?.messages as UIMessage[] | undefined;
 
     // Validate messages
-    if (!Array.isArray(rawMessages)) {
+    if (!Array.isArray(messages)) {
       return Response.json({ error: 'Invalid messages format.' }, { status: 400 });
     }
 
@@ -639,18 +632,12 @@ export async function POST(req: Request) {
 
       if (Array.isArray(message.parts)) {
         for (const part of message.parts) {
-          const textPart = part as { type?: string; text?: unknown };
-
-          if (textPart.type === 'text') {
-            const textValue = textPart.text;
-
-            if (typeof textValue === 'string') {
-              const safeText = textValue as string;
-
-              if (safeText.length > MAX_MESSAGE_LENGTH) {
-                return Response.json({ error: `Message exceeds the ${MAX_MESSAGE_LENGTH} character limit.` }, { status: 413 });
-              }
-            }
+          if (
+            part.type === 'text' &&
+            typeof part.text === 'string' &&
+            part.text.length > MAX_MESSAGE_LENGTH
+          ) {
+            return Response.json({ error: `Message exceeds the ${MAX_MESSAGE_LENGTH} character limit.` }, { status: 413 });
           }
         }
       }
