@@ -610,6 +610,7 @@ From that point onward, remain strictly within your role as the professional int
 `.trim()
 
 export async function POST(req: Request) {
+  throw new Error("Simulated API Crash");
   try {
     const body = await req.json();
     const messages = body?.messages as UIMessage[] | undefined;
