@@ -3,7 +3,7 @@
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { useEffect, useRef, useState } from 'react';
-import { StopCircle, Send, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { StopCircle, Send, Loader2, CheckCircle2, AlertCircle, RefreshCcw } from 'lucide-react';
 
 const MAX_INPUT_LENGTH = 2000;
 
@@ -15,6 +15,7 @@ export default function ChatInterface() {
     sendMessage,
     status,
     stop,
+    error,
   } = useChat({
     transport: new DefaultChatTransport({
       api: '/api/chat',
@@ -47,20 +48,39 @@ export default function ChatInterface() {
   };
 
   return (
-    <div className="flex flex-col h-[80vh] max-w-3xl mx-auto bg-white border border-gray-200 rounded-3xl shadow-sm overflow-hidden">
+    // تم استخدام h-[80dvh] لحل مشاكل Mobile Safari
+    <div className="flex flex-col h-[80dvh] max-w-3xl mx-auto bg-white border border-gray-200 rounded-3xl shadow-sm overflow-hidden">
       {/* Chat Messages Area */}
-      <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-6 space-y-6">
+      <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth">
+        
+        {/* 1. Designed Empty State (Onboarding) */}
         {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-gray-400">
-            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-              <Send className="w-6 h-6 text-gray-300" />
+          <div className="flex flex-col items-center justify-center h-full text-center px-4 animate-in fade-in zoom-in-95 duration-500">
+            <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-6 shadow-sm border border-blue-100">
+              <Send className="w-6 h-6 text-blue-500 ml-1" />
             </div>
-            <p className="text-sm font-medium">Start the qualification chat to begin...</p>
+            <h2 className="text-xl font-bold text-gray-800 mb-2 tracking-tight">Ready for your technical interview?</h2>
+            <p className="text-gray-500 mb-8 max-w-md text-sm">No conversation history yet. Start by typing a topic, or try one of these common frontend questions:</p>
+            
+            <div className="flex flex-col gap-3 w-full max-w-sm">
+              <button 
+                onClick={() => setInput("Explain the difference between Client and Server Components in Next.js.")} 
+                className="px-4 py-3 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 text-left transition-all shadow-sm hover:shadow-md"
+              >
+                "Explain Next.js Server Components..."
+              </button>
+              <button 
+                onClick={() => setInput("How does React's Virtual DOM actually work under the hood?")} 
+                className="px-4 py-3 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 text-left transition-all shadow-sm hover:shadow-md"
+              >
+                "How does the Virtual DOM work?"
+              </button>
+            </div>
           </div>
         )}
 
         {messages.map((message) => (
-          <div key={message.id} className={`flex flex-col gap-2 ${message.role === 'user' ? 'items-end' : 'items-start'}`}>
+          <div key={message.id} className={`flex flex-col gap-2 ${message.role === 'user' ? 'items-end' : 'items-start'} animate-in slide-in-from-bottom-2`}>
             {message.parts.map((part, index) => {
               // 1. عرض النصوص العادية
               if (part.type === 'text') {
@@ -75,7 +95,7 @@ export default function ChatInterface() {
                 );
               }
 
-              // 2. عرض الأدوات (Generative UI)
+              // 2. عرض الأدوات
               if (part.type === 'tool-evaluate_answer') {
                 switch (part.state) {
                   case 'input-streaming':
@@ -93,7 +113,7 @@ export default function ChatInterface() {
                         <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
                         <div className="text-sm text-red-800">
                           <strong className="font-semibold block mb-1">Evaluation Failed</strong>
-                          <p className="opacity-90">{part.errorText || 'We encountered an issue while processing your score. Please elaborate on your answer.'}</p>
+                          <p className="opacity-90">{part.errorText || 'We encountered an issue while processing your score.'}</p>
                         </div>
                       </div>
                     );
@@ -101,22 +121,10 @@ export default function ChatInterface() {
                   case 'output-available': {
                     const output = part.output;
                     if (!output || typeof output !== 'object' || !('score' in output) || !('feedback' in output) || !('strengths' in output)) {
-                      return (
-                        <div key={part.toolCallId} className="max-w-[85%] bg-red-50 border border-red-100 p-4 rounded-2xl rounded-bl-none mt-1 flex gap-3 items-start">
-                          <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
-                          <div className="text-sm text-red-800">
-                            <strong className="font-semibold block mb-1">Evaluation Failed</strong>
-                            <p className="opacity-90">We encountered an issue while processing your score. Please elaborate on your answer.</p>
-                          </div>
-                        </div>
-                      );
+                      return null;
                     }
 
-                    const { score, feedback, strengths } = output as {
-                      score: number;
-                      feedback: string;
-                      strengths: string[];
-                    };
+                    const { score, feedback, strengths } = output as { score: number; feedback: string; strengths: string[]; };
                     const isGoodScore = score >= 70;
 
                     return (
@@ -132,11 +140,9 @@ export default function ChatInterface() {
                             {score} / 100
                           </span>
                         </div>
-
                         <p className="text-gray-600 text-sm mb-5 leading-relaxed bg-gray-50 p-3 rounded-xl border border-gray-100">
                           {feedback}
                         </p>
-
                         {strengths && strengths.length > 0 && (
                           <div>
                             <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2 block">Key Strengths</span>
@@ -152,15 +158,35 @@ export default function ChatInterface() {
                       </div>
                     );
                   }
-
-                  default:
-                    return null;
+                  default: return null;
                 }
               }
               return null;
             })}
           </div>
         ))}
+
+        {/* 2. Error State UI (Mid-stream API or Network Failure) */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-5 mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in slide-in-from-bottom-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-red-100 rounded-full">
+                <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
+              </div>
+              <div>
+                <strong className="text-red-900 font-semibold block text-sm">Connection Interrupted</strong>
+                <span className="text-red-700 text-xs">We couldn't reach the AI model. Check your network.</span>
+              </div>
+            </div>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-white border border-red-200 hover:bg-red-50 text-red-700 text-sm font-semibold rounded-xl transition-all shadow-sm active:scale-95 w-full sm:w-auto"
+            >
+              <RefreshCcw className="w-4 h-4" />
+              Reload Page
+            </button>
+          </div>
+        )}
 
         {/* Thinking Indicator before text stream */}
         {status === 'submitted' && (
